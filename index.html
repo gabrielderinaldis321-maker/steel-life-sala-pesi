@@ -46,7 +46,7 @@
     <header>
       <img class="logo" src="steel-life-logo.jpg" alt="Logo Steel Life">
       <h1>Steel Life</h1>
-      <p>Prenotazione sala pesi · massimo 6 persone per fascia</p>
+      <p>Prenotazione sala pesi · massimo 8 persone per fascia · prenotazioni solo per oggi</p>
     </header>
     <section class="card" aria-label="Prenotazioni sala pesi">
       <div id="status" class="status">Caricamento disponibilità condivise…<span id="live" class="live">● CONNESSIONE</span></div>
@@ -63,7 +63,7 @@
   </main>
   <script>
     const API='https://steel-life-prenotazioni-api.gabrielderinaldis321.workers.dev';
-    const CAPACITY=6,ACTIVITY='Sala Pesi',DAYS=['Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato'];
+    const CAPACITY=8,ACTIVITY='Sala Pesi',DAYS=['Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato'];
     const WHATSAPP_TEXT='Steel Life - Sala Pesi';
     const WEEKDAY=Array.from({length:14},(_,i)=>`${String(i+7).padStart(2,'0')}:00 - ${String(i+8).padStart(2,'0')}:00`);
     const SATURDAY=['07:00 - 08:00','08:00 - 09:00','09:00 - 10:00','10:00 - 11:00','11:00 - 12:00','12:00 - 13:00'];
@@ -74,20 +74,21 @@
     function weekString(){return weekStart().toISOString().slice(0,10)}
     function dayDate(day){const offset=DAYS.indexOf(day),d=weekStart();d.setUTCDate(d.getUTCDate()+offset);return d}
     function key(day,time){return `${ACTIVITY}|${day}|${time}`}
-    function canBook(day,time){const n=nowRome(),d=dayDate(day),today=`${n.year}-${n.month}-${n.day}`,date=d.toISOString().slice(0,10);if(date<today)return false;if(date>today)return true;return time.slice(0,5)>`${n.hour}:${n.minute}`}
+    function canBook(day,time){const n=nowRome(),date=dayDate(day).toISOString().slice(0,10),today=`${n.year}-${n.month}-${n.day}`;return date===today&&time.slice(0,5)>`${n.hour}:${n.minute}`}
     function say(message,type=''){const el=$('status');el.firstChild.textContent=message;el.className=`status ${type}`}
     function dateLabel(day){const date=day instanceof Date?day:dayDate(day);return new Intl.DateTimeFormat('it-IT',{day:'2-digit',month:'2-digit',timeZone:'UTC'}).format(date)}
-    function renderDays(){const host=$('days');host.innerHTML='';for(const day of DAYS){const b=document.createElement('button');b.type='button';b.className=`day ${day===selectedDay?'active':''}`;b.disabled=dayDate(day).toISOString().slice(0,10)<`${nowRome().year}-${nowRome().month}-${nowRome().day}`;b.innerHTML=`${day}<small>${dateLabel(day)}</small>`;b.onclick=()=>{selectedDay=day;selectedSlot='';renderDays();renderSlots()};host.appendChild(b)}}
+    function todayDay(){const weekday=new Intl.DateTimeFormat('it-IT',{timeZone:'Europe/Rome',weekday:'long'}).format(new Date());const day=weekday[0].toLocaleUpperCase('it-IT')+weekday.slice(1);return DAYS.includes(day)?day:''}
+    function renderDays(){const host=$('days');host.innerHTML='';const n=nowRome(),today=`${n.year}-${n.month}-${n.day}`;for(const day of DAYS){const b=document.createElement('button');b.type='button';b.className=`day ${day===selectedDay?'active':''}`;b.disabled=dayDate(day).toISOString().slice(0,10)!==today;b.innerHTML=`${day}<small>${dateLabel(day)}</small>`;b.onclick=()=>{selectedDay=day;selectedSlot='';renderDays();renderSlots()};host.appendChild(b)}}
     function renderSlots(){const host=$('slots');host.innerHTML='';$('dayTitle').textContent=`${selectedDay} · ${dateLabel(dayDate(selectedDay))} · fasce orarie`;for(const time of SCHEDULE[selectedDay]||[]){const booked=Number(counts[key(selectedDay,time)]||0),remaining=Math.max(0,CAPACITY-booked),available=canBook(selectedDay,time),card=document.createElement('article');card.className=`slot ${selectedSlot===time?'selected':''}`;card.innerHTML=`<div class="slot-top"><span class="slot-time">⏰ ${time}</span><span class="availability ${remaining===0?'full':''}">${remaining===0?'Completo':`${booked}/${CAPACITY} · ${remaining} liberi`}</span></div><button type="button" class="slot-action" ${remaining===0||!available?'disabled':''}>${!available?'Non disponibile':selectedSlot===time?'Selezionato':'Seleziona'}</button>`;card.querySelector('button').onclick=()=>{selectedSlot=time;renderSlots()};host.appendChild(card)}}
     async function request(path,body){const response=await fetch(`${API}/api/${path}`,{method:body?'POST':'GET',headers:body?{'Content-Type':'application/json'}:{},body:body?JSON.stringify(body):undefined,cache:'no-store'});const data=await response.json().catch(()=>({}));if(!response.ok){const error=new Error(data.error||'Servizio non disponibile.');error.status=response.status;throw error}return data}
-    async function load(){try{const data=await request(`slots?week_start=${weekString()}`);counts=data.counts||{};$('live').textContent='● DISPONIBILITÀ CONDIVISE AGGIORNATE';$('live').style.color='#8ee4aa';renderDays();renderSlots()}catch{$('live').textContent='● SERVIZIO NON RAGGIUNGIBILE';$('live').style.color='#ff8989';say('Impossibile leggere le disponibilità. Riprova tra poco.','error')}}
+    async function load(){try{const currentDay=todayDay()||'Lunedì';if(selectedDay!==currentDay){selectedDay=currentDay;selectedSlot=''}const data=await request(`slots?week_start=${weekString()}`);counts=data.counts||{};$('live').textContent='● DISPONIBILITÀ CONDIVISE AGGIORNATE';$('live').style.color='#8ee4aa';renderDays();renderSlots()}catch{$('live').textContent='● SERVIZIO NON RAGGIUNGIBILE';$('live').style.color='#ff8989';say('Impossibile leggere le disponibilità. Riprova tra poco.','error')}}
     function person(){const words=$('name').value.trim().split(/\s+/).filter(Boolean);if(words.length<2)return null;return{first:words[0],last:words.slice(1).join(' ')}}
     function whatsappTab(){return window.open('about:blank','_blank')}
     function openWhatsApp(tab,text){if(tab){tab.location.href=`https://wa.me/${$('contact').value}?text=${encodeURIComponent(text)}`}else{window.location.href=`https://wa.me/${$('contact').value}?text=${encodeURIComponent(text)}`}}
     function payload(person){return{week_start:weekString(),activity:ACTIVITY,day_name:selectedDay,time_slot:selectedSlot,first_name:person.first,last_name:person.last}}
     $('form').onsubmit=async event=>{event.preventDefault();if(busy)return;const who=person();if(!who){say('Inserisci nome e cognome.','error');return}if(!selectedSlot){say('Seleziona prima una fascia oraria.','error');return}if(!canBook(selectedDay,selectedSlot)){say('Questa fascia non è più prenotabile.','error');return}const wa=whatsappTab();busy=true;$('book').disabled=$('cancel').disabled=true;say('Verifico la disponibilità e registro il posto…');try{const result=await request('book',payload(who));counts[key(selectedDay,selectedSlot)]=result.booked;renderSlots();say('Prenotazione registrata. Invia il messaggio WhatsApp per avvisare il referente.','good');openWhatsApp(wa,`🏋️ *${WHATSAPP_TEXT}*\n✅ Prenotazione confermata\n👤 *Nome:* ${who.first} ${who.last}\n📅 *Giorno:* ${selectedDay} ${dateLabel(dayDate(selectedDay))}\n⏰ *Orario:* ${selectedSlot}`);selectedSlot='';renderSlots()}catch(error){if(wa)wa.close();say(error.message,'error');await load()}finally{busy=false;$('book').disabled=$('cancel').disabled=false}};
     $('cancel').onclick=async()=>{if(busy)return;const who=person();if(!who){say('Inserisci nome e cognome.','error');return}if(!selectedSlot){say('Seleziona la fascia da disdire.','error');return}const wa=whatsappTab();busy=true;$('book').disabled=$('cancel').disabled=true;say('Verifico e aggiorno la disdetta…');try{const result=await request('cancel',payload(who));counts[key(selectedDay,selectedSlot)]=result.booked;const oldSlot=selectedSlot;selectedSlot='';renderSlots();say('Disdetta registrata. Invia il messaggio WhatsApp per avvisare il referente.','good');openWhatsApp(wa,`❌ *${WHATSAPP_TEXT}*\nDisdetta prenotazione\n👤 *Nome:* ${who.first} ${who.last}\n📅 *Giorno:* ${selectedDay} ${dateLabel(dayDate(selectedDay))}\n⏰ *Orario:* ${oldSlot}`)}catch(error){if(wa)wa.close();say(error.message,'error');await load()}finally{busy=false;$('book').disabled=$('cancel').disabled=false}};
-    const todayName=new Intl.DateTimeFormat('it-IT',{timeZone:'Europe/Rome',weekday:'long'}).format(new Date());selectedDay=DAYS.includes(todayName[0].toLocaleUpperCase('it-IT')+todayName.slice(1))?(todayName[0].toLocaleUpperCase('it-IT')+todayName.slice(1)):(todayName==='domenica'?'Lunedì':'Lunedì');renderDays();renderSlots();load();setInterval(load,15000);
+    selectedDay=todayDay()||'Lunedì';renderDays();renderSlots();load();setInterval(load,15000);
   </script>
 </body>
 </html>
