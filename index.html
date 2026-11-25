@@ -76,7 +76,7 @@
     function key(day,time){return `${ACTIVITY}|${day}|${time}`}
     function canBook(day,time){const n=nowRome(),d=dayDate(day),today=`${n.year}-${n.month}-${n.day}`,date=d.toISOString().slice(0,10);if(date<today)return false;if(date>today)return true;return time.slice(0,5)>`${n.hour}:${n.minute}`}
     function say(message,type=''){const el=$('status');el.firstChild.textContent=message;el.className=`status ${type}`}
-    function dateLabel(day){return new Intl.DateTimeFormat('it-IT',{day:'2-digit',month:'2-digit',timeZone:'UTC'}).format(dayDate(day))}
+    function dateLabel(day){const date=day instanceof Date?day:dayDate(day);return new Intl.DateTimeFormat('it-IT',{day:'2-digit',month:'2-digit',timeZone:'UTC'}).format(date)}
     function renderDays(){const host=$('days');host.innerHTML='';for(const day of DAYS){const b=document.createElement('button');b.type='button';b.className=`day ${day===selectedDay?'active':''}`;b.disabled=dayDate(day).toISOString().slice(0,10)<`${nowRome().year}-${nowRome().month}-${nowRome().day}`;b.innerHTML=`${day}<small>${dateLabel(day)}</small>`;b.onclick=()=>{selectedDay=day;selectedSlot='';renderDays();renderSlots()};host.appendChild(b)}}
     function renderSlots(){const host=$('slots');host.innerHTML='';$('dayTitle').textContent=`${selectedDay} · ${dateLabel(dayDate(selectedDay))} · fasce orarie`;for(const time of SCHEDULE[selectedDay]||[]){const booked=Number(counts[key(selectedDay,time)]||0),remaining=Math.max(0,CAPACITY-booked),available=canBook(selectedDay,time),card=document.createElement('article');card.className=`slot ${selectedSlot===time?'selected':''}`;card.innerHTML=`<div class="slot-top"><span class="slot-time">⏰ ${time}</span><span class="availability ${remaining===0?'full':''}">${remaining===0?'Completo':`${booked}/${CAPACITY} · ${remaining} liberi`}</span></div><button type="button" class="slot-action" ${remaining===0||!available?'disabled':''}>${!available?'Non disponibile':selectedSlot===time?'Selezionato':'Seleziona'}</button>`;card.querySelector('button').onclick=()=>{selectedSlot=time;renderSlots()};host.appendChild(card)}}
     async function request(path,body){const response=await fetch(`${API}/api/${path}`,{method:body?'POST':'GET',headers:body?{'Content-Type':'application/json'}:{},body:body?JSON.stringify(body):undefined,cache:'no-store'});const data=await response.json().catch(()=>({}));if(!response.ok){const error=new Error(data.error||'Servizio non disponibile.');error.status=response.status;throw error}return data}
@@ -91,4 +91,3 @@
   </script>
 </body>
 </html>
-
