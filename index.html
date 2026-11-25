@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#111214">
+  <title>Steel Life — Prenotazione sala pesi</title>
+  <style>
+    :root{--orange:#f28a20;--orange2:#ffb24a;--ink:#111214;--panel:#141619eF;--line:#ffffff26;--text:#f8f7f4;--muted:#c2c1bd;--green:#25d366;--red:#ed5353}
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100vh;padding:22px 14px 40px;background:linear-gradient(135deg,#090a0bd9,#090a0ba8 48%,#090a0bd9),url('palestra-sfondo.jpg') center/cover fixed;color:var(--text);font:15px 'Segoe UI',Arial,sans-serif}
+    .container{width:min(100%,850px);margin:auto}
+    header{text-align:center;margin:0 auto 22px;padding:18px 18px 16px;background:#101113d9;border:1px solid var(--line);border-radius:18px;backdrop-filter:blur(8px);box-shadow:0 16px 40px #0008}
+    .logo{display:block;width:104px;height:104px;object-fit:cover;margin:0 auto 8px;border:3px solid #fff;border-radius:18px;background:#fff;box-shadow:0 5px 22px #0008}
+    h1{margin:0;color:var(--orange2);font-size:clamp(1.5rem,5vw,2.1rem);letter-spacing:.07em;text-transform:uppercase}
+    header p{margin:7px 0 0;color:var(--muted);font-size:.98rem}
+    .card{padding:20px;background:var(--panel);border:1px solid var(--line);border-radius:16px;backdrop-filter:blur(10px);box-shadow:0 16px 40px #0008}
+    .status{margin-bottom:15px;padding:12px 14px;border:1px solid #ffffff22;border-radius:10px;text-align:center;color:#dedbd5;background:#0b0c0dcc;font-size:.9rem}
+    .status.error{color:#ffc0bd;border-color:#ed535388}.status.good{color:#adf3c3;border-color:#25d36688}
+    .live{display:block;margin-top:4px;font-size:.72rem;color:#8ee4aa;font-weight:700;letter-spacing:.04em}
+    .days{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;margin:0 0 16px}
+    .day{padding:10px 6px;color:#eee;background:#17191c;border:1px solid var(--line);border-radius:9px;font-weight:700;cursor:pointer}
+    .day.active{color:#17110a;background:var(--orange2);border-color:var(--orange2)}.day:disabled{opacity:.35;cursor:not-allowed}
+    .day small{display:block;margin-top:3px;font-size:.7rem;font-weight:500}
+    .section-title{margin:0 0 10px;color:var(--orange2);font-size:1rem;letter-spacing:.06em;text-transform:uppercase}
+    .slots{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px}
+    .slot{padding:13px;background:#0b0c0de8;border:1px solid #ffffff24;border-radius:11px}
+    .slot.selected{border-color:var(--orange2);box-shadow:0 0 0 1px var(--orange2)}
+    .slot-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+    .slot-time{font-size:1rem;font-weight:800}.availability{color:var(--muted);font-size:.81rem;white-space:nowrap}
+    .availability.full{color:#ff8989;font-weight:800}.slot-action{width:100%;margin-top:10px;padding:8px;border:0;border-radius:7px;background:#303339;color:#fff;font-weight:700;cursor:pointer}
+    .slot.selected .slot-action{background:var(--orange);color:#15110b}.slot-action:disabled{opacity:.4;cursor:not-allowed}
+    .form{display:grid;grid-template-columns:1fr 1fr;gap:13px;margin-top:20px}
+    .group label{display:block;margin-bottom:6px;color:#e4e0d8;font-weight:700;font-size:.88rem}
+    input,select{width:100%;height:44px;padding:0 11px;color:#fff;background:#0b0c0de8;border:1px solid #ffffff3b;border-radius:8px;font:inherit;outline:none}
+    input:focus,select:focus{border-color:var(--orange2)}
+    .actions{display:flex;gap:10px;grid-column:1/-1;margin-top:4px}
+    .btn{flex:1;min-height:46px;border:0;border-radius:9px;color:#111;font-weight:900;letter-spacing:.04em;text-transform:uppercase;cursor:pointer}
+    .btn.book{background:linear-gradient(135deg,#25d366,#138a52)}.btn.cancel{background:linear-gradient(135deg,#f05a58,#bd2727);color:#fff}.btn:disabled{opacity:.45;cursor:wait}
+    .foot{margin:14px 0 0;color:#c5c1bb;font-size:.78rem;text-align:center;line-height:1.5}
+    @media(max-width:560px){body{padding:10px 9px 26px}.card{padding:14px}.days{grid-template-columns:repeat(3,minmax(0,1fr))}.form{grid-template-columns:1fr}.actions{grid-column:auto}.slots{grid-template-columns:1fr}.logo{width:88px;height:88px}}
+  </style>
+</head>
+<body>
+  <main class="container">
+    <header>
+      <img class="logo" src="steel-life-logo.jpg" alt="Logo Steel Life">
+      <h1>Steel Life</h1>
+      <p>Prenotazione sala pesi · massimo 6 persone per fascia</p>
+    </header>
+    <section class="card" aria-label="Prenotazioni sala pesi">
+      <div id="status" class="status">Caricamento disponibilità condivise…<span id="live" class="live">● CONNESSIONE</span></div>
+      <nav id="days" class="days" aria-label="Giorni della settimana"></nav>
+      <h2 id="dayTitle" class="section-title">Fasce orarie</h2>
+      <div id="slots" class="slots"></div>
+      <form id="form" class="form">
+        <div class="group"><label for="name">Nome e cognome</label><input id="name" autocomplete="name" placeholder="Es. Mario Rossi" required></div>
+        <div class="group"><label for="contact">Avvisa il referente</label><select id="contact"><option value="393281814024">Ciro Morra · +39 328 181 4024</option><option value="393484743769">Anna Corato · +39 348 474 3769</option></select></div>
+        <div class="actions"><button id="book" class="btn book" type="submit">Prenota</button><button id="cancel" class="btn cancel" type="button">Disdici</button></div>
+      </form>
+      <p class="foot">Il posto viene prima registrato nel conteggio condiviso. Poi si apre WhatsApp per avvisare il referente.</p>
+    </section>
+  </main>
+  <script>
+    const API='https://steel-life-prenotazioni-api.gabrielderinaldis321.workers.dev';
+    const CAPACITY=6,ACTIVITY='Sala Pesi',DAYS=['Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato'];
+    const WHATSAPP_TEXT='Steel Life - Sala Pesi';
+    const WEEKDAY=Array.from({length:14},(_,i)=>`${String(i+7).padStart(2,'0')}:00 - ${String(i+8).padStart(2,'0')}:00`);
+    const SATURDAY=['07:00 - 08:00','08:00 - 09:00','09:00 - 10:00','10:00 - 11:00','11:00 - 12:00','12:00 - 13:00'];
+    const SCHEDULE=Object.fromEntries(DAYS.map(d=>[d,d==='Sabato'?SATURDAY:WEEKDAY]));
+    const $=id=>document.getElementById(id);let counts={},selectedDay='',selectedSlot='',busy=false;
+    function nowRome(){const parts=new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Rome',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',weekday:'long',hourCycle:'h23'}).formatToParts(new Date());return Object.fromEntries(parts.filter(x=>x.type!=='literal').map(x=>[x.type,x.value]))}
+    function weekStart(){const n=nowRome(),d=new Date(Date.UTC(+n.year,+n.month-1,+n.day));if(n.weekday==='Sunday')d.setUTCDate(d.getUTCDate()+1);d.setUTCDate(d.getUTCDate()-((d.getUTCDay()+6)%7));return d}
+    function weekString(){return weekStart().toISOString().slice(0,10)}
+    function dayDate(day){const offset=DAYS.indexOf(day),d=weekStart();d.setUTCDate(d.getUTCDate()+offset);return d}
+    function key(day,time){return `${ACTIVITY}|${day}|${time}`}
+    function canBook(day,time){const n=nowRome(),d=dayDate(day),today=`${n.year}-${n.month}-${n.day}`,date=d.toISOString().slice(0,10);if(date<today)return false;if(date>today)return true;return time.slice(0,5)>`${n.hour}:${n.minute}`}
+    function say(message,type=''){const el=$('status');el.firstChild.textContent=message;el.className=`status ${type}`}
+    function dateLabel(day){return new Intl.DateTimeFormat('it-IT',{day:'2-digit',month:'2-digit',timeZone:'UTC'}).format(dayDate(day))}
+    function renderDays(){const host=$('days');host.innerHTML='';for(const day of DAYS){const b=document.createElement('button');b.type='button';b.className=`day ${day===selectedDay?'active':''}`;b.disabled=dayDate(day).toISOString().slice(0,10)<`${nowRome().year}-${nowRome().month}-${nowRome().day}`;b.innerHTML=`${day}<small>${dateLabel(day)}</small>`;b.onclick=()=>{selectedDay=day;selectedSlot='';renderDays();renderSlots()};host.appendChild(b)}}
+    function renderSlots(){const host=$('slots');host.innerHTML='';$('dayTitle').textContent=`${selectedDay} · ${dateLabel(dayDate(selectedDay))} · fasce orarie`;for(const time of SCHEDULE[selectedDay]||[]){const booked=Number(counts[key(selectedDay,time)]||0),remaining=Math.max(0,CAPACITY-booked),available=canBook(selectedDay,time),card=document.createElement('article');card.className=`slot ${selectedSlot===time?'selected':''}`;card.innerHTML=`<div class="slot-top"><span class="slot-time">⏰ ${time}</span><span class="availability ${remaining===0?'full':''}">${remaining===0?'Completo':`${booked}/${CAPACITY} · ${remaining} liberi`}</span></div><button type="button" class="slot-action" ${remaining===0||!available?'disabled':''}>${!available?'Non disponibile':selectedSlot===time?'Selezionato':'Seleziona'}</button>`;card.querySelector('button').onclick=()=>{selectedSlot=time;renderSlots()};host.appendChild(card)}}
+    async function request(path,body){const response=await fetch(`${API}/api/${path}`,{method:body?'POST':'GET',headers:body?{'Content-Type':'application/json'}:{},body:body?JSON.stringify(body):undefined,cache:'no-store'});const data=await response.json().catch(()=>({}));if(!response.ok){const error=new Error(data.error||'Servizio non disponibile.');error.status=response.status;throw error}return data}
+    async function load(){try{const data=await request(`slots?week_start=${weekString()}`);counts=data.counts||{};$('live').textContent='● DISPONIBILITÀ CONDIVISE AGGIORNATE';$('live').style.color='#8ee4aa';renderDays();renderSlots()}catch{$('live').textContent='● SERVIZIO NON RAGGIUNGIBILE';$('live').style.color='#ff8989';say('Impossibile leggere le disponibilità. Riprova tra poco.','error')}}
+    function person(){const words=$('name').value.trim().split(/\s+/).filter(Boolean);if(words.length<2)return null;return{first:words[0],last:words.slice(1).join(' ')}}
+    function whatsappTab(){return window.open('about:blank','_blank')}
+    function openWhatsApp(tab,text){if(tab){tab.location.href=`https://wa.me/${$('contact').value}?text=${encodeURIComponent(text)}`}else{window.location.href=`https://wa.me/${$('contact').value}?text=${encodeURIComponent(text)}`}}
+    function payload(person){return{week_start:weekString(),activity:ACTIVITY,day_name:selectedDay,time_slot:selectedSlot,first_name:person.first,last_name:person.last}}
+    $('form').onsubmit=async event=>{event.preventDefault();if(busy)return;const who=person();if(!who){say('Inserisci nome e cognome.','error');return}if(!selectedSlot){say('Seleziona prima una fascia oraria.','error');return}if(!canBook(selectedDay,selectedSlot)){say('Questa fascia non è più prenotabile.','error');return}const wa=whatsappTab();busy=true;$('book').disabled=$('cancel').disabled=true;say('Verifico la disponibilità e registro il posto…');try{const result=await request('book',payload(who));counts[key(selectedDay,selectedSlot)]=result.booked;renderSlots();say('Prenotazione registrata. Invia il messaggio WhatsApp per avvisare il referente.','good');openWhatsApp(wa,`🏋️ *${WHATSAPP_TEXT}*\n✅ Prenotazione confermata\n👤 *Nome:* ${who.first} ${who.last}\n📅 *Giorno:* ${selectedDay} ${dateLabel(dayDate(selectedDay))}\n⏰ *Orario:* ${selectedSlot}`);selectedSlot='';renderSlots()}catch(error){if(wa)wa.close();say(error.message,'error');await load()}finally{busy=false;$('book').disabled=$('cancel').disabled=false}};
+    $('cancel').onclick=async()=>{if(busy)return;const who=person();if(!who){say('Inserisci nome e cognome.','error');return}if(!selectedSlot){say('Seleziona la fascia da disdire.','error');return}const wa=whatsappTab();busy=true;$('book').disabled=$('cancel').disabled=true;say('Verifico e aggiorno la disdetta…');try{const result=await request('cancel',payload(who));counts[key(selectedDay,selectedSlot)]=result.booked;const oldSlot=selectedSlot;selectedSlot='';renderSlots();say('Disdetta registrata. Invia il messaggio WhatsApp per avvisare il referente.','good');openWhatsApp(wa,`❌ *${WHATSAPP_TEXT}*\nDisdetta prenotazione\n👤 *Nome:* ${who.first} ${who.last}\n📅 *Giorno:* ${selectedDay} ${dateLabel(dayDate(selectedDay))}\n⏰ *Orario:* ${oldSlot}`)}catch(error){if(wa)wa.close();say(error.message,'error');await load()}finally{busy=false;$('book').disabled=$('cancel').disabled=false}};
+    const todayName=new Intl.DateTimeFormat('it-IT',{timeZone:'Europe/Rome',weekday:'long'}).format(new Date());selectedDay=DAYS.includes(todayName[0].toLocaleUpperCase('it-IT')+todayName.slice(1))?(todayName[0].toLocaleUpperCase('it-IT')+todayName.slice(1)):(todayName==='domenica'?'Lunedì':'Lunedì');renderDays();renderSlots();load();setInterval(load,15000);
+  </script>
+</body>
+</html>
+
